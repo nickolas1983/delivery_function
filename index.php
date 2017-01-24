@@ -3,14 +3,16 @@ session_start();
 
 
 $input = [
-    'total_count' => 150,
+    'total_count' => 163,
     'delivered' => 147,
     'fail' => 4,
-    'open' => 155,
-    'click' => 169
+    'open' => 47,
+    'click' => 21
 ];
 
 function get_percent(array $input){
+    unset($_SESSION['message']);
+
     if ($input['delivered']+$input['fail'] > $input['total_count']){
         $_SESSION['message'][]='Cумма доставленных и не доставленных писем превышает общее количество';
     }
@@ -23,9 +25,26 @@ function get_percent(array $input){
     if (isset($_SESSION['message'])){
         return $_SESSION['message'];
     }
-    $output = array();
+
+    $delivered = round(($input['delivered']/$input['total_count'])*100, 1);
+    $fail =      round(($input['fail']/$input['total_count'])*100, 1);
+    $progress =  100 - $delivered - $fail;
+    $open =      round(($input['open']/$input['delivered'])*100, 1);
+    $click =     round(($input['click']/$input['delivered'])*100, 1);
+
+
+    $output = [
+        'total_count' => 100.0,
+        'delivered' => $delivered,
+        'progress' => $progress,
+        'fail' => $fail,
+        'open' => $open,
+        'click' => $click
+
+    ];
 
     return $output;
 }
-
+echo "<pre>";
 var_dump(get_percent($input));
+echo "</pre>";
