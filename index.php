@@ -3,11 +3,11 @@ session_start();
 
 
 $input = [
-    'total_count' => 163,
-    'delivered' => 77,
-    'fail' => 82,
-    'open' => 3,
-    'click' => 3
+    'total_count' => 100,
+    'delivered' => 50,
+    'fail' => 50,
+    'open' => 15,
+    'click' => 1
 ];
 
 function get_percent(array $input){
@@ -49,68 +49,141 @@ function get_percent(array $input){
 
 function bar_width(array $percents, $width_koef, $min_width = 32){
 
-    $main_percents = [
-        'delivered' => $percents['delivered'],
-        'progress' => $percents['progress'],
-        'fail' => $percents['fail']
+    $main_width = [
+        'delivered' => $percents['delivered'] * $width_koef,
+        'progress' => $percents['progress'] * $width_koef,
+        'fail' => $percents['fail'] * $width_koef
     ];
 
-    $open_click_percents = [
-        'open' => $percents['open'],
-        'click' => $percents['click']
+    $open_click_width = [
+        'open' => $percents['open'] * $width_koef * ($percents['delivered'] / 100),
+        'click' => $percents['click'] * $width_koef * ($percents['delivered'] / 100)
     ];
 
+    echo "<pre>";
+    var_dump($percents);
+    echo "</pre>";
 
+    echo "<pre>";
+    var_dump($main_width);
+    var_dump($open_click_width);
+    echo "</pre>";
 
-    asort($main_percents);
-
-    // key of max value element
-    end($main_percents);
-    $max_key = key($main_percents);
-    reset($main_percents);
-
-
-    // check opens and clicks
-    /*$difference = 0;
-    foreach ($open_click_percents as $key => $percent){
-        if($percent == 0){
-            $result[$key] = 0;
+    // define min width opens and clicks
+    foreach ($open_click_width as $key => $width){
+        if($width == 0){
+            $open_click_width[$key] = 0;
         }
-        else if ($percent >0 && $percent < 4){
-            $result[$key] = 4;
-            $difference += 4 - $percent;
-        }
-        else {
-            $result[$key] = $percent;
+        else if ($width >0 && $width < $min_width){
+            $open_click_width[$key] = $min_width;
         }
     }
-    $percents['delivered'] =*/
+
+    // define min width delivered
+    $difference_deliver = 0;
+    if($open_click_width['open'] == 0 && $open_click_width['click'] == 0 && $main_width['delivered'] < $min_width){
+        $difference_deliver = $min_width - $main_width['delivered'];
+        $main_width['delivered'] = $min_width;
+    }
+    else if(($open_click_width['open'] > 0 && $open_click_width['click'] == 0)){
+        if ($main_width['delivered'] < $min_width * 2){
+            $difference_deliver = $min_width * 2 - $main_width['delivered'];
+            $main_width['delivered'] = $min_width * 2;
+            $open_click_width['open'] = $min_width;
+        }
+        else if ($main_width['delivered'] > $min_width * 2){
+            if ($main_width['delivered'] - $open_click_width['open'] < $min_width){
+                $open_click_width['open'] = $main_width['delivered'] - $min_width;
+            }
+        }
+    }
+    else if($open_click_width['open'] > 0 && $open_click_width['click'] > 0 ){
+        if ($main_width['delivered'] < $min_width * 3){
+            $difference_deliver = $min_width * 3 - $main_width['delivered'];
+            $main_width['delivered'] = $min_width * 3;
+            $open_click_width['open'] = $min_width;
+            $open_click_width['click'] = $min_width;
+        }
+        else if($main_width['delivered'] > $min_width * 3){
+
+            if($main_width['delivered'] - $open_click_width['open'] < $min_width){
+                if ($open_click_width['open'] - $open_click_width['click'] < $min_width){
+                    $open_click_width['open'] = $min_width;
+                    $open_click_width['click'] -= $min_width * 2;
+                }
+                else if(($open_click_width['open'] - $open_click_width['click']) > $min_width ){
+                    if ($open_click_width['click'] > $min_width * 2){
+                        $open_click_width['open'] = $open_click_width['open'] - $open_click_width['click'] ;
+                        $open_click_width['click'] -= $min_width ;
+                    }
+                    else if($open_click_width['click'] < $min_width * 2){
+                        $open_click_width['open'] = $open_click_width['open'] - $open_click_width['click'] - $min_width;
+                    }
+
+                }
+            }
+            else if($main_width['delivered'] - $open_click_width['open'] > $min_width){
+
+                if ($main_width['delivered'] - ($open_click_width['open'] + $open_click_width['click']) < $min_width){
+                    $full_stek = $main_width['delivered'] - $min_width;
+                    $open_click = $open_click_width['open'] + $open_click_width['click'];
+                    $open_click_width['open'] *=  $full_stek/$open_click;
+                    $open_click_width['click'] *=  $full_stek/$open_click;
+                    echo "<pre>";
+                    var_dump($main_width);
+                    var_dump($open_click_width);
+                    echo "</pre>";
+
+                }
+                else if($main_width['delivered'] - ($open_click_width['open'] + $open_click_width['click'])  > $min_width){
+
+                }
+
+            }
+
+        }
+    }
 
 
-    //
+    // key of max width element of $main_width
+    asort($main_width);
+    end($main_width);
+    $max_key = key($main_width);
+    reset($main_width);
+
     $result = array();
 
+    $result['open'] = $open_click_width['open'];
+    $result['click'] = $open_click_width['click'];
+
     $difference = 0;
-    foreach ($main_percents as $key => $percent){
-        if($percent == 0){
+    foreach ($main_width as $key => $width){
+        if($width == 0){
             $result[$key] = 0;
         }
-        else if ($percent >0 && $percent * $width_koef < $min_width){
+        else if ($width >0 && $width < $min_width){
             $result[$key] = $min_width;
-            $difference += $min_width - $percent * $width_koef;
+            $difference += $min_width - $width;
         }
         else {
-            if($key == $max_key && $difference > 0){
-                $result[$key] = $percent * $width_koef - $difference;
+            if($key == $max_key && ($difference > 0 || $difference_deliver >0) ){
+                $result[$key] = $width - $difference - $difference_deliver;
             }
             else{
-                $result[$key] = $percent * $width_koef;
+                $result[$key] = $width;
             }
         }
     }
 
+
+
+    echo "<pre>";
+    var_dump($result);
+    echo "</pre>";
     return $result;
 }
+
+
 //widt in pixels
 $width = 800;
 $width_koef = $width/100;
@@ -144,9 +217,15 @@ $output = get_percent($input); ?>
         $bar_width = bar_width($output, $width_koef); ?>
         <div class="progress">
             <div class="progress-bar progress-bar-success" style="width: <?= $bar_width['delivered']?>px">
+                <div class="progress-bar progress-bar-info" style="width: <?= $bar_width['click']?>px">
+                    <?= $output['click']?>
+                </div>
+                <div class="progress-bar progress-bar-warning" style="width:  <?= $bar_width['open']?>px">
+                    <?= $output['open']?>
+                </div>
                 <?= $output['delivered']?>
             </div>
-            <div class="progress-bar progress-bar" style="width: <?= $bar_width['progress']?>px">
+            <div class="progress-bar" style="width: <?= $bar_width['progress']?>px">
                 <?= $output['progress']?>
             </div>
             <div class="progress-bar progress-bar-danger" style="width:  <?= $bar_width['fail']?>px">
